@@ -11,7 +11,7 @@ eval_ngram()
     --beam_beta  0.0   \
     --preds_output_folder results/amp_sp_metasen_from_pretrained \
     --decoding_mode beamsearch_ngram \
-    > results/"${LM}"__$(basename ${TEST/%.*}).log
+    > results/"${LM}"__"$(basename ${TEST/%.*})".log
 }
 
 build_kenlm_binary()
