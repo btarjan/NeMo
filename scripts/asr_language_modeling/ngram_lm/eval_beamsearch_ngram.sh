@@ -7,11 +7,11 @@ eval_ngram()
     --input_manifest  "${TEST}" \
     --kenlm_model_file ./lm/"${LM}".bin \
     --beam_width 80 \
-    --beam_alpha 1.6 1.8 2.0 2.2 2.4 2.6 3.0 \
-    --beam_beta  0.0   \
+    --beam_alpha 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0 \
+    --beam_beta -1 -0.5 0.0 0.5 1.0 \
     --preds_output_folder results/amp_sp_metasen_from_pretrained \
     --decoding_mode beamsearch_ngram \
-    > results/"${LM}"__"$(basename ${TEST/%.*})".log
+    > results/"${LM}"__"$(basename "${TEST/%.*}")".log
 }
 
 build_kenlm_binary()
@@ -26,17 +26,32 @@ build_kenlm_binary()
   fi
 }
 
+# Test sets
 test_dev_spont=/data/BEA-1/dev-spont-indep/dev-spont-indep.json
 test_dev_planned=/data/BEA-1/dev-planned-indep/dev-planned-indep.json
 test_eval_spont=/data/BEA-1/eval-spont-indep/eval-spont-indep16.json
 test_eval_planned=/data/BEA-1/eval-planned-indep/eval-planned-indep16.json
 
-TEST=${test_dev_spont}
-LM=train-114_3gram
+#TEST=${test_eval_spont}
+#LM=train-114_3gram
 
-# build kenlm binary if necessary
-build_kenlm_binary
+# List of test sets
+declare -a test_list=("${test_dev_spont}" "${test_dev_planned}" \
+  "${test_eval_spont}" "${test_eval_planned}")
 
-# eval with n-gram model
-eval_ngram
+# List of LMs to test
+declare -a LM_list=(train-114_3gram train-114_4gram train-114_5gram \
+  spok_norm_10-1_obh_postproc_3gram spok_norm_10-1_obh_postproc_4gram \
+  spok_norm_10-1_obh_postproc_5gram train-114__spok_norm_10-1_obh_postproc__ip061_3gram \
+  train-114__spok_norm_10-1_obh_postproc__ip061_3gram_PRUNED \
+  train-114__spok_norm_10-1_obh_postproc__ip061_4gram train-114__spok_norm_10-1_obh_postproc__ip061_5gram)
 
+
+for TEST in "${test_list[@]}"; do
+  for LM in "${LM_list[@]}"; do
+    # build kenlm binary if necessary
+    build_kenlm_binary
+    # eval with n-gram model
+    eval_ngram
+  done
+done
