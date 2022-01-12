@@ -1,11 +1,10 @@
-
 import sys
 import re
 
 log_path = sys.argv[1]
 
-decoding_param_pattern = re.compile("preds_out_(.+).tsv")
-WER_pattern = re.compile(" = ([\d\.]+)%/")
+decoding_param_pattern = re.compile(r"preds_out_(.+).tsv")
+WER_pattern = re.compile(r" = ([\d.]+)%/")
 result_dict = {}
 i = 0
 
@@ -22,6 +21,7 @@ with open(log_path) as log_file:
             WER = WER_match.group(1)
             result_dict[decoding_param] = float(WER)
 
-        sorted_results = sorted(result_dict.items(), key=lambda kv: kv[1])
+        sorted_results_list = sorted(result_dict.items(), key=lambda kv: kv[1])
 
-print(sorted_results)
+sorted_results_string_list = [str(tup) for tup in sorted_results_list]
+print("\n".join(sorted_results_string_list))
