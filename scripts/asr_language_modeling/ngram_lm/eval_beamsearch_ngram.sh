@@ -4,7 +4,7 @@ eval_ngram()
 {
   mkdir -p results
   mkdir -p results/preds
-  mkdir -p results/preds/"${LM}"__"$(basename "${TEST/%.*}")"
+  mkdir -p results/preds/"${LM}"__"$(basename "${TEST%.*}")"
   python eval_beamsearch_ngram.py \
     --nemo_model_file am_models/QuartzNet15x5_hu.nemo \
     --input_manifest  "${TEST}" \
@@ -12,7 +12,7 @@ eval_ngram()
     --beam_width 80 \
     --beam_alpha 2.2 \
     --beam_beta -0.5 \
-    --preds_output_folder results/preds/"${LM}"__"$(basename "${TEST/%.*}")" \
+    --preds_output_folder results/preds/"${LM}"__"$(basename "${TEST%.*}")" \
     --decoding_mode beamsearch_ngram \
     --acoustic_batch_size ${ACM_BS} \
     --beam_batch_size ${BEAM_BS} \
