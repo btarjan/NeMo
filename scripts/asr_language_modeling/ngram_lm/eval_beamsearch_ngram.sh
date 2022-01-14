@@ -9,13 +9,13 @@ eval_ngram()
     --nemo_model_file am_models/QuartzNet15x5_hu.nemo \
     --input_manifest  "${TEST}" \
     --kenlm_model_file ./lm/"${LM}".bin \
-    --beam_width 80 \
-    --beam_alpha 2.2 \
-    --beam_beta -0.5 \
+    --beam_width "${BEAM_WIDTH}" \
+    --beam_alpha 1.6 \
+    --beam_beta 0.0 \
     --preds_output_folder results/preds/"${LM}"__"$(basename "${TEST%.*}")" \
     --decoding_mode beamsearch_ngram \
-    --acoustic_batch_size ${ACM_BS} \
-    --beam_batch_size ${BEAM_BS} \
+    --acoustic_batch_size "${ACM_BS}" \
+    --beam_batch_size "${BEAM_BS}" \
     > results/"${LM}"__"$(basename "${TEST%.*}")".log
 }
 
@@ -62,12 +62,14 @@ declare -a test_list=("${test_dev_spont_no_empty}" "${test_eval_spont_no_empty}"
 #  train-114__spok_norm_10-1_obh_postproc__ip061_4gram train-114__spok_norm_10-1_obh_postproc__ip061_5gram)
 
 # List of LMs to test
-declare -a LM_list=(train-114_3gram)
+declare -a LM_list=(train-114__spok_norm_10-1_obh_postproc__ip061_3gram)
 
 # acoustic batch size
 ACM_BS=32
 # beam batch size
 BEAM_BS=128
+# beam width
+BEAM_WIDTH=80
 
 for TEST in "${test_list[@]}"; do
   for LM in "${LM_list[@]}"; do
