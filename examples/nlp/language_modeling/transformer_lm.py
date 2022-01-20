@@ -29,7 +29,10 @@ def main(cfg: DictConfig) -> None:
     exp_manager(trainer, cfg.get("exp_manager", None))
     transformer_lm = TransformerLMModel(cfg.model, trainer=trainer)
     trainer.fit(transformer_lm)
-
+    print("Testing last checkpoint")
+    trainer.test(transformer_lm)
+    print("Testing best checkpoint")
+    trainer.test(ckpt_path="best")
 
 if __name__ == '__main__':
     main()
