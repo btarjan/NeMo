@@ -3,7 +3,6 @@ import pytorch_lightning as pl
 from nemo.collections.nlp.models.language_modeling import TransformerLMModel
 
 nemo_path = "results/TransformerLM_PT_spok/2022-01-20_15-42-00/checkpoints/TransformerLM_PT_spok--val_PPL=464.9954-epoch=2.nemo"
-config_path = "conf/transformer_lm_config.yaml"
 
 model = TransformerLMModel.restore_from(restore_path=nemo_path, map_location='cuda')
 params = model.cfg
