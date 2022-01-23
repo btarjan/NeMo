@@ -6,7 +6,17 @@ import youtokentome as yttm
 # vocab_size = 30000
 # yttm.BPE.train(data, model, vocab_size)
 
+# data = "txts/train-114.txt"
+# model = "tokenizers/train-114_10k"
+# vocab_size = 10000
+# yttm.BPE.train(data, model, vocab_size)
+
 data = "txts/train-114.txt"
-model = "tokenizers/train-114_10k"
-vocab_size = 10000
+model = "tokenizers/train-114_5k"
+vocab_size = 5000
+yttm.BPE.train(data, model, vocab_size)
+
+data = "txts/train-114.txt"
+model = "tokenizers/train-114_20k"
+vocab_size = 20000
 yttm.BPE.train(data, model, vocab_size)
