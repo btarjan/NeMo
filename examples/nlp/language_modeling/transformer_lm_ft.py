@@ -8,8 +8,8 @@ from nemo.utils import logging
 from nemo.utils.exp_manager import exp_manager
 import copy
 
-nemo_path = "/home/tarjanb/NeMo/examples/nlp/language_modeling/results/TransformerLM_PT_spok/2022-01-20_23-08-10/checkpoints/TransformerLM_PT_spok.nemo"
-ckpt_path="/home/tarjanb/NeMo/examples/nlp/language_modeling/results/TransformerLM_PT_spok/2022-01-20_23-08-10/checkpoints/TransformerLM_PT_spok--val_PPL_849.3261-epoch_9-last.ckpt"
+nemo_path = "results/TransformerLM_PT_spok/2022-01-21_23-42-53/checkpoints/TransformerLM_PT_spok.nemo"
+# ckpt_path="/results/TransformerLM_PT_spok/2022-01-20_23-08-10/checkpoints/TransformerLM_PT_spok--val_PPL_849.3261-epoch_9-last.ckpt"
 
 @hydra_runner(config_path="conf", config_name="transformer_lm_config")
 def main(cfg: DictConfig) -> None:
