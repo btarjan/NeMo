@@ -49,7 +49,7 @@ mkdir -p results
 python transformer_lm.py \
   -cn transformer_lm_config_gpt2_small \
   trainer.gpus=2 \
-  trainer.max_epochs=10 \
+  trainer.max_epochs=50 \
   model.train_ds.tokens_in_batch=16384 \
   exp_manager.name=TransformerLM_PT_spok_GPT2_small \
   +exp_manager.exp_dir=./results \
@@ -63,7 +63,8 @@ python transformer_lm.py \
   model.test_ds.file_name=txts/eval-spont-indep.txt \
   model.tokenizer.tokenizer_model=tokenizers/train-114_10k \
   +model.head.use_transformer_init=True \
-  +trainer.val_check_interval=0.1
+  +trainer.val_check_interval=0.1 \
+  model.optim.lr=1e-4
 
 
 # finetuning
@@ -71,7 +72,7 @@ python transformer_lm.py \
 #  -cn transformer_lm_config \
 #  trainer.gpus=2 \
 #  trainer.max_epochs=40 \
-#  exp_manager.name=TransformerLM_FT_train-114 \
+#  exp_manager.name=TransformerLM_FT_train-114_GPT2_small \
 #  +exp_manager.exp_dir=./results \
 #  +exp_manager.create_tensorboard_logger=True \
 #  +exp_manager.create_checkpoint_callback=True \
