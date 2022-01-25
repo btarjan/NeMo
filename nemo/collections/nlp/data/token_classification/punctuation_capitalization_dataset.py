@@ -41,7 +41,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 import torch
-from numpy.typing import ArrayLike
 from omegaconf import MISSING, DictConfig, OmegaConf
 from tqdm import tqdm
 
@@ -50,6 +49,7 @@ from nemo.collections.nlp.data.data_utils.data_preprocessing import get_label_st
 from nemo.core.classes import Dataset
 from nemo.core.neural_types import ChannelType, LabelsType, MaskType, NeuralType
 from nemo.utils import logging
+from nemo.utils.get_rank import is_global_rank_zero
 
 MAX_NUM_QUERIES_IN_SPLIT = 10 ** 4
 TOKENIZATION_PROGRESS_REPORT_PERIOD = 10 ** 3
@@ -64,9 +64,9 @@ class PunctuationCapitalizationDataConfigBase:
     """A base class for punctuation and capitalization data configs. This class does not define ``ds_item``
     attribute which works differently for train and evaluation data."""
 
-    #################################################
-    # COMMON DATASET PARAMETERS
-    #################################################
+    ###################################################
+    # PARAMETERS COMMON FOR REGULAR AND TARRED DATASETS
+    ###################################################
     use_tarred_dataset: bool = MISSING
     """Whether to use tarred dataset. If True, then you should provide ``tar_metadata_file``. Otherwise, you should
     provide ``text_file``, ``labels_file``, ``tokens_in_batch``."""
@@ -102,10 +102,11 @@ class PunctuationCapitalizationDataConfigBase:
     parameter equals ``-1``, then all samples are used."""
 
     use_cache: bool = True
-    """Whether to use pickled features. If pickled features does not exist, then pickled features will be created.
-    For large regular datasets, pickled features may considerably reduce time for training starting. Tokenization
-    of source sequences is not fast because sequences are split into words before tokenization. For even larger
-    datasets (~4M), tarred datasets are recommended."""
+    """Whether to use pickled features. If pickled features file does not exist or ``use_cache=False``, then features
+    are pickled in ``cache_dir``. Pickled features include input ids, subtokens mask (mask of first tokens in words),
+    encoded punctuation and capitalization labels, label ids. Features creation consumes considerable time and this
+    ``use_cache=True`` significantly speeds up training starting. Pickled features are also used for sharing features
+    between processes if data parallel training is used."""
 
     cache_dir: Optional[str] = None
     """A path to a directory containing cache or directory where newly created cache is saved. By default, it is
@@ -440,7 +441,7 @@ class TokenizeCreateMasksClipWorker:
         punct_label_lines: Optional[Union[List[str], Tuple[str, ...]]],
         capit_label_lines: Optional[Union[List[str], Tuple[str, ...]]],
         split_i: int,
-    ) -> Tuple[List[ArrayLike], List[ArrayLike], List[ArrayLike], List[ArrayLike]]:
+    ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
         """
         Tokenize, clip, encode labels, and create masks of first tokens in words.
 
@@ -515,7 +516,7 @@ def _get_features(
     verbose: bool = True,
     n_jobs: Optional[int] = 0,
     progress_queue: Optional[mp.Queue] = None,
-) -> Tuple[List[ArrayLike], List[ArrayLike], List[ArrayLike], List[ArrayLike]]:
+) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
     """
     Tokenizes data, encodes labels, creates masks of first tokens in words, clips sequences by number of tokens.
 
@@ -608,14 +609,14 @@ def _get_features(
 
 
 def create_masks_and_segment_ids(
-    input_ids: ArrayLike,
-    subtokens_mask: ArrayLike,
+    input_ids: np.ndarray,
+    subtokens_mask: np.ndarray,
     pad_id: int,
     cls_id: int,
     sep_id: int,
     ignore_start_end: bool,
     ignore_extra_tokens: bool,
-) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Creates segment ids array, input mask, loss mask.
 
@@ -750,7 +751,7 @@ def raise_not_equal_labels_error(
     raise ValueError(msg)
 
 
-def pad(vectors: List[ArrayLike], length: int, value: Union[int, float, bool]) -> ArrayLike:
+def pad(vectors: List[np.ndarray], length: int, value: Union[int, float, bool]) -> np.ndarray:
     """
     Pad vectors to length ``length`` and then stack.
     Args:
@@ -808,18 +809,12 @@ class BertPunctuationCapitalizationDataset(Dataset):
             ``[True, False]``, and if ``ignore_extra_tokens=False``, then loss mask is ``[True, True]``.
         ignore_start_end (:obj:`bool`, `optional`, defaults to :obj:`True`): whether to ignore [CLS] and [SEP] tokens
             in the loss_mask.
-        use_cache (:obj:`bool`, `optional`, defaults to :obj:`True`): whether to use pickled features or not. If
-            pickled features does not exist and ``use_cache=True``, then pickled features will be created. Pickled
-            features are looked for and stored in ``cache_dir``. Pickled features include input ids, subtokens mask
-            (mask of first tokens in words), encoded punctuation and capitalization labels, label ids. Features
-            creation consumes considerable time and this ``use_cache=True`` significantly speeds up training starting.
-
-            .. warning::
-                If you spawned more then 1 processes BEFORE dataset creation, then the ``use_cache`` parameter
-                has to be ``True``. In PyTorch Lightning spawning is performed when `Trainer.fit()
-                <https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#fit>`_ or
-                `Trainer.test() <https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#test>`_
-                are called.
+        use_cache (:obj:`bool`, `optional`, defaults to :obj:`True`): whether to use pickled features already present
+            in ``cache_dir`` or not. If pickled features file does not exist or ``use_cache=False``, then features are
+            pickled in ``cache_dir``. Pickled features include input ids, subtokens mask (mask of first tokens in
+            words), encoded punctuation and capitalization labels, label ids. Features creation consumes considerable
+            time and this ``use_cache=True`` significantly speeds up training starting. Pickled features are also
+            used for sharing features between processes if data parallel training is used.
         cache_dir (:obj:`Union[str, os.PathLike]`, `optional`): a path to a directory where cache (pickled features)
             is stored. By default, ``text_file`` parent directory is used. This parameter is useful if dataset
             directory is read-only and you wish to pickle features. In such a case specify a path to directory which
@@ -880,8 +875,8 @@ class BertPunctuationCapitalizationDataset(Dataset):
         num_samples: int = -1,
         tokens_in_batch: int = 5000,
         pad_label: str = 'O',
-        punct_label_ids: Optional[Dict[str, int]] = None,
-        capit_label_ids: Optional[Dict[str, int]] = None,
+        punct_label_ids: Optional[Union[Dict[str, int], DictConfig]] = None,
+        capit_label_ids: Optional[Union[Dict[str, int], DictConfig]] = None,
         ignore_extra_tokens: bool = False,
         ignore_start_end: bool = True,
         use_cache: bool = True,
@@ -898,6 +893,10 @@ class BertPunctuationCapitalizationDataset(Dataset):
         batch_building_progress_queue: Optional[mp.Queue] = None,
     ) -> None:
         """ Initializes BertPunctuationCapitalizationDataset. """
+        if isinstance(punct_label_ids, DictConfig):
+            punct_label_ids = OmegaConf.to_container(punct_label_ids)
+        if isinstance(capit_label_ids, DictConfig):
+            capit_label_ids = OmegaConf.to_container(capit_label_ids)
         self._check_constructor_parameters(
             text_file,
             labels_file,
@@ -930,7 +929,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
         self.batch_mark_up_progress_queue = batch_mark_up_progress_queue
         self.batch_building_progress_queue = batch_building_progress_queue
 
-        master_device = not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
+        master_device = is_global_rank_zero()
         features_pkl = self._get_path_to_pkl_features(text_file, cache_dir, max_seq_length, num_samples)
         features = None
         if master_device and not (features_pkl.is_file() and use_cache):
@@ -963,11 +962,10 @@ class BertPunctuationCapitalizationDataset(Dataset):
                 progress_queue=tokenization_progress_queue,
                 n_jobs=n_jobs,
             )
-            if use_cache:
-                features_pkl.parent.mkdir(parents=True, exist_ok=True)
-                pickle.dump(tuple(list(features) + [punct_label_ids, capit_label_ids]), open(features_pkl, "wb"))
-                if self.verbose:
-                    logging.info(f'Features saved to {features_pkl}')
+            features_pkl.parent.mkdir(parents=True, exist_ok=True)
+            pickle.dump(tuple(list(features) + [punct_label_ids, capit_label_ids]), open(features_pkl, "wb"))
+            if self.verbose:
+                logging.info(f'Features saved to {features_pkl}')
 
         # wait until the master process writes to the processed data files
         if torch.distributed.is_initialized():
@@ -1034,9 +1032,9 @@ class BertPunctuationCapitalizationDataset(Dataset):
             )
         if not (os.path.exists(text_file) and os.path.exists(labels_file)):
             raise FileNotFoundError(
-                f'{text_file} or {labels_file} not found. The data should be split into 2 files: text.txt and'
-                f'labels.txt. Each line of the text.txt file contains text sequences, where words are separated with'
-                f'spaces. The labels.txt file contains corresponding labels for each word in text.txt, the labels are'
+                f'{text_file} or {labels_file} not found. The data should be split into 2 files: text.txt and '
+                f'labels.txt. Each line of the text.txt file contains text sequences, where words are separated with '
+                f'spaces. The labels.txt file contains corresponding labels for each word in text.txt, the labels are '
                 f'separated with spaces. Each line of the files should follow the format:\n'
                 f'   [WORD] [SPACE] [WORD] [SPACE] [WORD] (for text.txt) and '
                 f'   [LABEL] [SPACE] [LABEL] [SPACE] [LABEL] (for labels.txt).'
@@ -1173,7 +1171,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
         text_lines, punct_labels_lines, capit_labels_lines = zip(*dataset)
         return text_lines, punct_labels_lines, capit_labels_lines, punct_unique_labels, capit_unique_labels
 
-    def _mark_up_batches(self, input_ids: List[ArrayLike]) -> Tuple[List[int], List[int], List[int]]:
+    def _mark_up_batches(self, input_ids: List[np.ndarray]) -> Tuple[List[int], List[int], List[int]]:
         """
         Computes indices of first samples in batch, batch sizes, seq lengths for batches. ``input_ids`` has to be
         sorted by number of tokens in ascending order.
@@ -1252,11 +1250,11 @@ class BertPunctuationCapitalizationDataset(Dataset):
 
     def _pack_into_batches(
         self,
-        input_ids: List[ArrayLike],
-        subtokens_mask: List[ArrayLike],
-        punct_labels: List[ArrayLike],
-        capit_labels: List[ArrayLike],
-    ) -> List[Dict[str, ArrayLike]]:
+        input_ids: List[np.ndarray],
+        subtokens_mask: List[np.ndarray],
+        punct_labels: List[np.ndarray],
+        capit_labels: List[np.ndarray],
+    ) -> List[Dict[str, np.ndarray]]:
         """
         Shuffle input sequences, sort them by number of tokens, pad, and pack into batches which satisfy following
         conditions:
@@ -1352,7 +1350,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
             self.input_ids, self.subtokens_mask, self.punct_labels, self.capit_labels
         )
 
-    def _calculate_and_save_label_frequencies(self, all_labels: List[ArrayLike], name: str) -> Dict[str, float]:
+    def _calculate_and_save_label_frequencies(self, all_labels: List[np.ndarray], name: str) -> Dict[str, float]:
         """Calculates and saves labels frequencies in :attr:`label_info_save_dir`."""
         merged_labels = itertools.chain.from_iterable(all_labels)
         if self.verbose:
@@ -1394,7 +1392,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
     def __len__(self) -> int:
         return len(self.batches)
 
-    def collate_fn(self, batches: List[Dict[str, ArrayLike]]) -> Dict[str, torch.Tensor]:
+    def collate_fn(self, batches: List[Dict[str, np.ndarray]]) -> Dict[str, torch.Tensor]:
         """
         Return zeroth batch from ``batches`` list passed for collating and casts ``'segment_ids'``, ``'punct_labels'``,
         ``'capit_labels'`` to types supported by
@@ -1405,7 +1403,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
             A ``batch_size`` parameter of a PyTorch data loader and sampler has to be ``1``.
 
         Args:
-            batches (:obj:`List[Dict[str, ArrayLike]]`): a list containing 1 batch passed for collating
+            batches (:obj:`List[Dict[str, np.ndarray]]`): a list containing 1 batch passed for collating
 
         Returns:
             :obj:`Dict[str, torch.Tensor]`: a batch dictionary with following items (for detailed description of batch
@@ -1425,7 +1423,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
         batch['capit_labels'] = batch['capit_labels'].long()
         return batch
 
-    def __getitem__(self, idx: int) -> Dict[str, ArrayLike]:
+    def __getitem__(self, idx: int) -> Dict[str, np.ndarray]:
         """
         Return a batch with index ``idx``. The values of a batch dictionary are numpy arrays of identical shapes
         ``[Batch, Time]``. Labels are identical for all tokens in a word. For example, if
@@ -1440,7 +1438,7 @@ class BertPunctuationCapitalizationDataset(Dataset):
             idx: an index of returned batch
 
         Returns:
-            :obj:`Dict[str, ArrayLike]`: a dictionary with items:
+            :obj:`Dict[str, np.ndarray]`: a dictionary with items:
 
               - ``'input_ids'`` (:obj:`numpy.ndarray`): :obj:`numpy.int32` array containing encoded tokens,
               - ``'subtokens_mask'`` (:obj:`numpy.ndarray`): :obj:`bool` array which elements are ``True`` if they

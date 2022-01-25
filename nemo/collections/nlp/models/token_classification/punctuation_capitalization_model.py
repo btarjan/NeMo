@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from numpy.typing import ArrayLike
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -103,10 +102,11 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
         self.world_size = 1
         if trainer is not None:
             self.world_size = trainer.num_nodes * trainer.num_gpus
-        self.metrics = None
-        self.label_ids_are_set = False
-        self.punct_label_ids = None
-        self.capit_label_ids = None
+        # For structure of `self.metrics` attribute see `self._setup_metrics_dictionary` method.
+        self.metrics: Optional[torch.nn.ModuleDict] = None
+        self.label_ids_are_set: bool = False
+        self.punct_label_ids: Optional[Dict[str, int]] = None
+        self.capit_label_ids: Optional[Dict[str, int]] = None
         super().__init__(cfg=cfg, trainer=trainer)
         if not self.label_ids_are_set:
             self._set_label_ids()
@@ -682,13 +682,13 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
                     f"The artifact `class_labels.punct_labels_file` was not found in checkpoint. Will rely on "
                     f"`punct_label_ids` parameter"
                 )
-                self.punct_label_ids = self._cfg.common_dataset_parameters.punct_label_ids
+                self.punct_label_ids = OmegaConf.to_container(self._cfg.common_dataset_parameters.punct_label_ids)
             else:
                 self.punct_label_ids = load_label_ids(
                     self.register_artifact('class_labels.punct_labels_file', str(punct_label_vocab_file))
                 )
         elif self._cfg.common_dataset_parameters.punct_label_ids is not None:
-            self.punct_label_ids = self._cfg.common_dataset_parameters.punct_label_ids
+            self.punct_label_ids = OmegaConf.to_container(self._cfg.common_dataset_parameters.punct_label_ids)
         else:
             raise ValueError(
                 f"Could not set attribute `punct_label_ids`. Config parameters "
@@ -704,13 +704,13 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
                     f"The artifact `class_labels.capit_labels_file` was not found in checkpoint. Will rely on "
                     f"`capit_label_ids` parameter"
                 )
-                self.capit_label_ids = self._cfg.common_dataset_parameters.capit_label_ids
+                self.capit_label_ids = OmegaConf.to_container(self._cfg.common_dataset_parameters.capit_label_ids)
             else:
                 self.capit_label_ids = load_label_ids(
                     self.register_artifact('class_labels.capit_labels_file', str(capit_label_vocab_file))
                 )
         elif self._cfg.common_dataset_parameters.capit_label_ids is not None:
-            self.capit_label_ids = self._cfg.common_dataset_parameters.capit_label_ids
+            self.capit_label_ids = OmegaConf.to_container(self._cfg.common_dataset_parameters.capit_label_ids)
         else:
             raise ValueError(
                 f"Could not set attribute `capit_label_ids`. Config parameters "
@@ -874,7 +874,7 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
         margin: int,
         is_first: Tuple[bool],
         is_last: Tuple[bool],
-    ) -> Tuple[List[ArrayLike], List[ArrayLike], List[int]]:
+    ) -> Tuple[List[np.ndarray], List[np.ndarray], List[int]]:
         """
         Applies softmax to get punctuation and capitalization probabilities, applies ``subtokens_mask`` to extract
         probabilities for words from probabilities for tokens, removes ``margin`` probabilities near edges of a segment.
@@ -918,8 +918,8 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
 
     @staticmethod
     def _move_acc_probs_to_token_preds(
-        pred: List[int], acc_prob: ArrayLike, number_of_probs_to_move: int
-    ) -> Tuple[List[int], ArrayLike]:
+        pred: List[int], acc_prob: np.ndarray, number_of_probs_to_move: int
+    ) -> Tuple[List[int], np.ndarray]:
         """
         ``number_of_probs_to_move`` rows in the beginning are removed from ``acc_prob``. From every remove row the label
         with the largest probability is selected and appended to ``pred``.
@@ -943,7 +943,7 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
         return pred, acc_prob
 
     @staticmethod
-    def _update_accumulated_probabilities(acc_prob: ArrayLike, update: ArrayLike) -> ArrayLike:
+    def _update_accumulated_probabilities(acc_prob: np.ndarray, update: np.ndarray) -> np.ndarray:
         """
         Args:
             acc_prob: numpy array of shape ``[A, L]``
@@ -1084,8 +1084,8 @@ class PunctuationCapitalizationModel(NLPModel, Exportable):
             # input query. When all segments with a word are processed, a label with the highest probability
             # (or product of probabilities) is chosen and appended to an appropriate list in `all_preds`. After adding
             # prediction to `all_preds`, probabilities for a word are removed from `acc_probs`.
-            acc_punct_probs: List[Optional[ArrayLike]] = [None for _ in queries]
-            acc_capit_probs: List[Optional[ArrayLike]] = [None for _ in queries]
+            acc_punct_probs: List[Optional[np.ndarray]] = [None for _ in queries]
+            acc_capit_probs: List[Optional[np.ndarray]] = [None for _ in queries]
             d = self.device
             for batch_i, batch in tqdm(
                 enumerate(infer_datalayer), total=ceil(len(infer_datalayer.dataset) / batch_size), unit="batch"
