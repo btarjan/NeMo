@@ -8,8 +8,7 @@ from nemo.utils import logging
 from nemo.utils.exp_manager import exp_manager
 import copy
 
-nemo_path = "results/TransformerLM_PT_spok/2022-01-21_23-42-53/checkpoints/TransformerLM_PT_spok.nemo"
-# ckpt_path="/results/TransformerLM_PT_spok/2022-01-20_23-08-10/checkpoints/TransformerLM_PT_spok--val_PPL_849.3261-epoch_9-last.ckpt"
+nemo_path = "results/TransformerLM_PT_spok_GPT2_small/2022-01-24_19-49-22/checkpoints/TransformerLM_PT_spok_GPT2_small--val_PPL=553.0045-epoch=5.nemo"
 
 @hydra_runner(config_path="conf", config_name="transformer_lm_config")
 def main(cfg: DictConfig) -> None:
@@ -25,7 +24,7 @@ def main(cfg: DictConfig) -> None:
     # params['test_ds']['tokens_in_batch'] = 8192
     # params['train_ds']['batch_size'] = 8
     new_opt = copy.deepcopy(params.optim)
-    new_opt.lr = 0.00005
+    new_opt.lr = 1e-5
     # new_opt.sched.max_steps = 200
     # new_opt.sched.name = "ReduceLROnPlateau"
     # new_opt.sched.warmup_ratio = 0.0
