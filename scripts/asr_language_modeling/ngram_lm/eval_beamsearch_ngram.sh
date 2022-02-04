@@ -7,7 +7,7 @@ eval_ngram()
   mkdir -p results/preds/"${LM}"__"$(basename "${TEST%.*}")"
   mkdir -p results/"${ACM}"
   python eval_beamsearch_ngram.py \
-    --nemo_model_file am_models/${ACM}.nemo \
+    --nemo_model_file am_models/"${ACM}".nemo \
     --input_manifest  "${TEST}" \
     --kenlm_model_file ./lm/"${LM}".bin \
     --beam_width "${BEAM_WIDTH}" \
