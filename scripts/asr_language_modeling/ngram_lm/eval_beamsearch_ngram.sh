@@ -34,8 +34,8 @@ build_kenlm_binary()
 
 find_best_WER()
 {
-  python find_best_WER.py results/"${LM}"__"$(basename "${TEST%.*}")".log \
-  > results/"${LM}"__"$(basename "${TEST%.*}")".log2
+  python find_best_WER.py results/"${ACM}"/"${LM}"__"$(basename "${TEST%.*}")".log \
+  > results/"${ACM}"/"${LM}"__"$(basename "${TEST%.*}")".log2
 }
 
 # Test sets
