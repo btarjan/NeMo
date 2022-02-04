@@ -23,5 +23,5 @@ python ./speech_to_text_bpe.py \
     trainer.gpus=2 \
     trainer.max_epochs=100 \
     model.train_ds.batch_size=32 \
+    model.optim.lr=0.5 \
     +init_from_pretrained_model="stt_en_conformer_ctc_medium"
-
