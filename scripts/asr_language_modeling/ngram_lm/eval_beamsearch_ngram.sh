@@ -11,14 +11,15 @@ eval_ngram()
     --input_manifest  "${TEST}" \
     --kenlm_model_file ./lm/"${LM}".bin \
     --beam_width "${BEAM_WIDTH}" \
-    --beam_alpha 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0 \
-    --beam_beta -1 -0.5 0.0 0.5 1.0 \
+    --beam_alpha 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 \
+    --beam_beta -1.0 -0.5 0.0 0.5 1.0 1.5 2.0 \
     --preds_output_folder results/preds/"${LM}"__"$(basename "${TEST%.*}")" \
     --decoding_mode beamsearch_ngram \
     --acoustic_batch_size "${ACM_BS}" \
     --beam_batch_size "${BEAM_BS}" \
     > results/"${ACM}"/"${LM}"__"$(basename "${TEST%.*}")".log
 }
+
 
 build_kenlm_binary()
 {
@@ -48,7 +49,9 @@ test_eval_repet=/data/BEA-Base.json/eval-repet.json
 declare -a test_list=("${test_dev_spont}" "${test_eval_spont}")
 
 # List of LMs to test
-declare -a LM_list=(BEA_QuartzNet15x5_hu_3gram_kenlm)
+declare -a LM_list=(BEA_Conformer_large-CTC-BPE_pretrained_3gram_kenlm \
+                    BEA_Conformer_large-CTC-BPE_pretrained_4gram_kenlm \
+                    BEA_Conformer_large-CTC-BPE_pretrained_5gram_kenlm)
 
 # acoustic batch size
 ACM_BS=32
@@ -57,10 +60,10 @@ BEAM_BS=128
 # beam width
 BEAM_WIDTH=80
 # acoustic model
-ACM=QuartzNet15x5_hu
+ACM=Conformer_large-CTC-BPE_pretrained
 
-for TEST in "${test_list[@]}"; do
-  for LM in "${LM_list[@]}"; do
+for LM in "${LM_list[@]}"; do
+  for TEST in "${test_list[@]}"; do
     # build kenlm binary if necessary
     build_kenlm_binary
     # eval with n-gram model
