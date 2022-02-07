@@ -8,5 +8,3 @@ python ./speech_to_text.py \
     trainer.gpus=2 \
     trainer.max_epochs=100 \
     model.train_ds.batch_size=32 \
-    model.validation_ds.batch_size=4 \
-    model.test_ds.batch_size=4
