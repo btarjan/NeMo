@@ -100,7 +100,7 @@ model:
   decoder:
     _target_: nemo.collections.asr.modules.ConvASRDecoder
     feat_in: null
-    num_classes: -1
+    num_classes: 36
     vocabulary: ${model.labels}
 
   optim:
