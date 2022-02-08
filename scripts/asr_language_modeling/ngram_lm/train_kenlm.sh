@@ -2,17 +2,19 @@
 
 train_kenlm()
 {
-  acm=${1}
+  train=${1}
   ngram=${2}
+  acm=${3}
 
   python train_kenlm.py \
     --nemo_model_file am_models/"${acm}".nemo \
-    --train_file /data/BEA-Base.json/train-114.json \
+    --train_file "${train}" \
     --kenlm_bin_path decoders/kenlm/build/bin/  \
-    --kenlm_model_file lm/BEA_"${acm}"_"${ngram}"gram_kenlm.bin \
+    --kenlm_model_file lm/"$(basename "${train%.*}")"_"${acm}"_"${ngram}"gram_kenlm.bin \
     --ngram_length "${ngram}"
 }
 
-train_kenlm QuartzNet15x5_hu 3
-train_kenlm Conformer-CTC-Char 3
-train_kenlm Conformer-CTC-BPE 3
+#train_kenlm /data/BEA-Base.json/train-114.json 3 Conformer_large-CTC-BPE_pretrained
+train_kenlm txt/spok.txt 3 Conformer_large-CTC-BPE_pretrained
+train_kenlm txt/spok.txt 4 Conformer_large-CTC-BPE_pretrained
+train_kenlm txt/spok.txt 5 Conformer_large-CTC-BPE_pretrained
