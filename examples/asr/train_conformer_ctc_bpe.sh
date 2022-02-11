@@ -40,7 +40,8 @@ python ./speech_to_text_bpe.py \
     model.tokenizer.type="bpe" \
     hydra.run.dir="." \
     trainer.gpus=2 \
-    trainer.max_epochs=100 \
+    trainer.max_epochs=50 \
     model.train_ds.batch_size=8 \
     model.optim.lr=1.0 \
-    +init_from_pretrained_model="stt_en_conformer_ctc_large"
+    +init_from_pretrained_model="stt_en_conformer_ctc_large" \
+    trainer.accumulate_grad_batches=4
