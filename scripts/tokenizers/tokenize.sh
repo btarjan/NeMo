@@ -14,5 +14,3 @@ python ./process_asr_text_tokenizer.py \
    --no_lower_case \
    --log \
    --vocab_size=${VOCAB_SIZE}
-#   --spe_bos
-#   --spe_eos
