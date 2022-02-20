@@ -28,7 +28,7 @@ python ./speech_to_text_bpe.py \
     hydra.run.dir="." \
     trainer.gpus=2 \
     trainer.max_epochs=100 \
-    model.optim.lr=0.01 \
+    model.optim.lr=0.005 \
     model.train_ds.batch_size=16 \
     +init_from_pretrained_model="stt_en_citrinet_1024" \
     trainer.accumulate_grad_batches=2
