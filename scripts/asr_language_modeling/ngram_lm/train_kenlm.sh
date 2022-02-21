@@ -18,7 +18,7 @@ train_kenlm()
 #train_kenlm /data/BEA-Base.json/train-114.json 4 QuartzNet15x5_hu
 #train_kenlm /data/BEA-Base.json/train-114.json 5 QuartzNet15x5_hu
 #train_kenlm /data/BEA-Base.json/train-114.json 6 QuartzNet15x5_hu
-#
+
 #train_kenlm /data/BEA-Base.json/train-114.json 3 Conformer-CTC-BPE_pretrained
 #train_kenlm /data/BEA-Base.json/train-114.json 4 Conformer-CTC-BPE_pretrained
 #train_kenlm /data/BEA-Base.json/train-114.json 5 Conformer-CTC-BPE_pretrained
@@ -34,17 +34,22 @@ train_kenlm()
 #train_kenlm txt/spok.txt 5 Conformer_large-CTC-BPE_pretrained
 #train_kenlm txt/spok.txt 6 Conformer_large-CTC-BPE_pretrained
 
-train_kenlm txt/train-114_spok.txt 3 QuartzNet15x5_hu
-train_kenlm txt/train-114_spok.txt 4 QuartzNet15x5_hu
-train_kenlm txt/train-114_spok.txt 5 QuartzNet15x5_hu
-train_kenlm txt/train-114_spok.txt 6 QuartzNet15x5_hu
+#train_kenlm txt/train-114_spok.txt 3 QuartzNet15x5_hu
+#train_kenlm txt/train-114_spok.txt 4 QuartzNet15x5_hu
+#train_kenlm txt/train-114_spok.txt 5 QuartzNet15x5_hu
+#train_kenlm txt/train-114_spok.txt 6 QuartzNet15x5_hu
 
-train_kenlm txt/train-114_spok.txt 3 Conformer-CTC-BPE_pretrained
-train_kenlm txt/train-114_spok.txt 4 Conformer-CTC-BPE_pretrained
-train_kenlm txt/train-114_spok.txt 5 Conformer-CTC-BPE_pretrained
-train_kenlm txt/train-114_spok.txt 6 Conformer-CTC-BPE_pretrained
+#train_kenlm txt/train-114_spok.txt 3 Conformer-CTC-BPE_pretrained
+#train_kenlm txt/train-114_spok.txt 4 Conformer-CTC-BPE_pretrained
+#train_kenlm txt/train-114_spok.txt 5 Conformer-CTC-BPE_pretrained
+#train_kenlm txt/train-114_spok.txt 6 Conformer-CTC-BPE_pretrained
 
 #train_kenlm txt/train-114_spok.txt 3 Conformer_large-CTC-BPE_pretrained
 #train_kenlm txt/train-114_spok.txt 4 Conformer_large-CTC-BPE_pretrained
 #train_kenlm txt/train-114_spok.txt 5 Conformer_large-CTC-BPE_pretrained
 #train_kenlm txt/train-114_spok.txt 6 Conformer_large-CTC-BPE_pretrained
+
+train_kenlm /data/BEA-Base.json/train-114.json 3 Citrinet-1024-8x-Stride
+train_kenlm /data/BEA-Base.json/train-114.json 4 Citrinet-1024-8x-Stride
+train_kenlm /data/BEA-Base.json/train-114.json 5 Citrinet-1024-8x-Stride
+train_kenlm /data/BEA-Base.json/train-114.json 6 Citrinet-1024-8x-Stride

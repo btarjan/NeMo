@@ -11,8 +11,8 @@ eval_ngram()
     --input_manifest "${TEST}" \
     --kenlm_model_file ./lm/"${LM}".bin \
     --beam_width "${BEAM_WIDTH}" \
-    --beam_alpha 1.0 1.2 1.4 1.6 1.8 \
-    --beam_beta -1.0 -0.5 0.0 0.5 1.0 \
+    --beam_alpha 0.6 0.8 1.0 1.2 1.4 \
+    --beam_beta 0.5 1.0 1.5 2.0 2.5 \
     --preds_output_folder results/preds/"${LM}"__"$(basename "${TEST%.*}")" \
     --decoding_mode beamsearch_ngram \
     --acoustic_batch_size "${ACM_BS}" \
@@ -71,9 +71,10 @@ test_eval_repet=/data/BEA-Base.json/eval-repet.json
 declare -a test_list=("${test_dev_spont}" "${test_eval_spont}")
 
 # List of LMs to test
-declare -a LM_list=(train-114_spok_QuartzNet15x5_hu_4gram_kenlm \
-                    train-114_spok_QuartzNet15x5_hu_5gram_kenlm \
-                    train-114_spok_QuartzNet15x5_hu_6gram_kenlm )
+declare -a LM_list=(train-114_Citrinet-1024-8x-Stride_3gram_kenlm \
+                    train-114_Citrinet-1024-8x-Stride_4gram_kenlm \
+                    train-114_Citrinet-1024-8x-Stride_5gram_kenlm \
+                    train-114_Citrinet-1024-8x-Stride_6gram_kenlm )
 
 # acoustic batch size
 ACM_BS=32
@@ -82,18 +83,18 @@ BEAM_BS=128
 # beam width
 BEAM_WIDTH=80
 # acoustic model
-ACM=QuartzNet15x5_hu
+ACM=Citrinet-1024-8x-Stride
 
-#for LM in "${LM_list[@]}"; do
-#  for TEST in "${test_list[@]}"; do
-#    # build kenlm binary if necessary
-#    build_kenlm_binary
-#    # eval with n-gram model
-#    eval_ngram
-#    # sort parameters by WER
-#    find_best_WER
-#  done
-#done
+for LM in "${LM_list[@]}"; do
+  for TEST in "${test_list[@]}"; do
+    # build kenlm binary if necessary
+    build_kenlm_binary
+    # eval with n-gram model
+    eval_ngram
+    # sort parameters by WER
+    find_best_WER
+  done
+done
 
 LM=train-114_spok_Conformer_large-CTC-BPE_pretrained_6gram_kenlm
 ACM=Conformer_large-CTC-BPE_pretrained
@@ -101,4 +102,4 @@ TEST=${test_eval_repet}
 ALPHA=1.6
 BETA=2.0
 
-eval_ngram_with_weight
+#eval_ngram_with_weight
